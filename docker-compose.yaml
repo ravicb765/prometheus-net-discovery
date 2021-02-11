@@ -1,0 +1,13 @@
+version: "3.0"
+services:
+    prometheus:
+        image: prometheus-net-discovery:latest
+        container_name: prometheus
+        environment:
+            - Subnet=x.x.x.x/x,x.x.x.x/x
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml:z
+            - ./prometheus_storage:/prometheus:z
+        user: "root:root"
+        ports:
+            - "9090:9090"
