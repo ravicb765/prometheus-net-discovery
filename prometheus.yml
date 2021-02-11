@@ -16,4 +16,4 @@ scrape_configs:
     metrics_path: /metrics
     file_sd_configs:
     - files:
-        - /etc/prometheus/node-exporter.json
+        - /files/node-exporter.json
