@@ -1,0 +1,36 @@
+FROM golang:latest as builder
+
+WORKDIR /build
+
+COPY . .
+RUN go get -v -t -d ./...
+RUN CGO_ENABLED=0 go build -o prometheus-net-discovery .
+
+FROM alpine:latest
+ARG VER=2.24.1
+RUN apk update && \
+    apk upgrade && \
+    apk add bash wget rsync curl tar && \
+    mkdir -p /prometheus /files /etc/prometheus/ /usr/share/prometheus/console_libraries /usr/share/prometheus/consoles/ && \
+    wget https://github.com/prometheus/prometheus/releases/download/v${VER}/prometheus-${VER}.linux-amd64.tar.gz &&\
+    tar -xvzf prometheus-${VER}.linux-amd64.tar.gz &&\
+    cp prometheus-${VER}.linux-amd64/prometheus        /bin/prometheus &&\
+    cp prometheus-${VER}.linux-amd64/promtool          /bin/promtool &&\
+    cp -r prometheus-${VER}.linux-amd64/prometheus.yml  /etc/prometheus/prometheus.yml &&\
+    cp -r prometheus-${VER}.linux-amd64/console_libraries/                     /usr/share/prometheus/console_libraries/ &&\
+    cp -r prometheus-${VER}.linux-amd64/consoles/                              /usr/share/prometheus/consoles/ &&\
+    cp prometheus-${VER}.linux-amd64/LICENSE                                /LICENSE &&\
+    cp prometheus-${VER}.linux-amd64/NOTICE                                 /NOTICE  &&\
+    rm -rf prometheus-${VER}.linux-amd64
+
+COPY --from=builder /build/prometheus-net-discovery /bin/prometheus-net-discovery
+COPY discovery.sh /bin/discovery.sh
+RUN ln -s /usr/share/prometheus/console_libraries /usr/share/prometheus/consoles/ /etc/prometheus/ && \
+    chmod +x /bin/discovery.sh /bin/prometheus-net-discovery &&\
+    chown -R nobody:nobody etc/prometheus /prometheus /files
+Env Subnet x.x.x.x/x
+USER       root
+EXPOSE     9090
+VOLUME     [ "/prometheus" ]
+WORKDIR    /prometheus
+ENTRYPOINT [ "/bin/discovery.sh" ]
